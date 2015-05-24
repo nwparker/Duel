@@ -19,25 +19,27 @@ var sun = new Path.Circle({
 });
 
 // add all suns to this array
-var suns = [sun];
+var SUNS = [sun];
 
 
 //This code is what gets called on each iteration
-function onFrame() {
+function onFrame(event) {
+	//Check collisions
+
 	if (Key.isDown('up')){
-		ship.thurst();
-		ship.draw();
-		return;
+		ship.thrust();
+	}else{
+		if (Key.isDown('left'))
+		    ship.left();
+
+		if (Key.isDown('right'))
+			ship.right();
 	}
 
-	if (Key.isDown('left'))
-	    ship.left();
-
-	if (Key.isDown('right'))
-		ship.right();
-
-
-	ship.draw();
+	ship.gravity();
+	// Only draw every-other time (optimization)
+	if (event.count%2 == 0)
+		ship.draw();
 }
 
 function onKeyDown(event) {
@@ -122,6 +124,20 @@ var ship = new function() {
 				if (position.y > size.height + bounds.height)
 					position.y = -bounds.height;
 			}
+		},
+
+		gravity: function() {
+			var sunRadius 	= 60 //TODO: fix
+			var sunCenter 	= sun.interiorPoint;
+			var shipCenter  = head.position;
+			var gravityVector 	= new Point({
+				x: (shipCenter.x - sunCenter.x),
+				y: (shipCenter.y - sunCenter.y)
+			});
+			gravityVector.length = (sunRadius*50/Math.pow((gravityVector.length+.0001), 2));
+			gravityVector.angle += 180;
+
+			positionVector += gravityVector;
 		}
 	}
 };
