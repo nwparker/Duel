@@ -8,6 +8,12 @@ project.currentStyle = {
 	strokeCap: 'round'
 };
 
+var ship;
+project.importSVG('models/ship.svg', function(shipSvg){
+	shipSvg.scale(.3);
+	shipSvg.rotation = 90;
+	ship = createShip(shipSvg);
+});
 
 //Create the sun
 var sun = new Path.Circle({
@@ -21,25 +27,26 @@ var sun = new Path.Circle({
 // add all suns to this array
 var SUNS = [sun];
 
-
 //This code is what gets called on each iteration
 function onFrame(event) {
-	//Check collisions
+	if (typeof ship !== 'undefined'){
+		//Check collisions
 
-	if (Key.isDown('up')){
-		ship.thrust();
-	}else{
-		if (Key.isDown('left'))
-		    ship.left();
+		if (Key.isDown('up')){
+			ship.thrust();
+		}else{
+			if (Key.isDown('left'))
+			    ship.left();
 
-		if (Key.isDown('right'))
-			ship.right();
+			if (Key.isDown('right'))
+				ship.right();
+		}
+
+		ship.gravity();
+		// Only draw every-other time (optimization)
+		if (event.count%2 == 0)
+			ship.draw();
 	}
-
-	ship.gravity();
-	// Only draw every-other time (optimization)
-	if (event.count%2 == 0)
-		ship.draw();
 }
 
 function onKeyDown(event) {
@@ -51,93 +58,95 @@ function onKeyDown(event) {
 }
 
 
+function createShip(shipSvg) {
+	return new function() {
+		var spawnPoint = new Point({
+			x: (view.viewSize.width * .85),
+			y: (view.viewSize.height * .5)
+		});
+		var spawnAngle = 90;
 
-var ship = new function() {
-	var spawnPoint = new Point({
-		x: (view.viewSize.width * .85),
-		y: (view.viewSize.height * .5)
-	});
-	var spawnAngle = 90;
-
-	// TODO: Change into a ship shape
-	var headPath = new Path.Oval({
-		from: [0, 0],
-		to: [13, 8],
-		fillColor: 'blue',
-		strokeColor: null
-	});
-	headPath.scale(1.3);
-	var headSymbol = new Symbol(headPath);
-	var head = new PlacedSymbol(headSymbol);
-	head.position = spawnPoint;
-	head.rotation = spawnAngle;
+		// // TODO: Change into a ship shape
+		// var bodyPath = new Path.Oval({
+		// 	from: [0, 0],
+		// 	to: [13, 8],
+		// 	fillColor: 'blue',
+		// 	strokeColor: null
+		// });
+		// bodyPath.scale(1.3);
+		// var bodySymbol = new Symbol(shipSvg);
+		var body = new PlacedSymbol(shipSvg);
+		body.position = spawnPoint;
+		// body.rotation = spawnAngle;
 
 
-	/*
-	 * Ship constants
-	 */
-	var steering = 5;
+		/*
+		 * Ship constants
+		 */
+		var steering = 5;
 
-	/*
-	 * Vectors for position
-	 */
-	var positionVector = new Point({
-		angle: spawnAngle,
-		length: .5
-	});
+		/*
+		 * Vectors for position
+		 */
+		var positionVector = new Point({
+			angle: spawnAngle,
+			length: .5
+		});
 
-	var thrustVector = new Point({
-		angle: 0,
-		length: .05
-	});
+		var thrustVector = new Point({
+			angle: 0,
+			length: .08
+		});
 
-	return {
-		left: function() {
-			head.rotate(-steering);
-		},
+		return {
+			left: function() {
+				body.rotate(-steering);
+			},
 
-		right: function() {
-			head.rotate(steering);
-		},
+			right: function() {
+				body.rotate(steering);
+			},
 
-		thrust: function() {
-		    thrustVector.angle = head.rotation;
-		    positionVector += thrustVector;
-		},
+			thrust: function() {
+			    thrustVector.angle = body.rotation;
+			    positionVector += thrustVector;
+			},
 
-		draw: function() {
-			head.position += positionVector;
-			this.pacman();
-		},
+			draw: function() {
+				body.position += positionVector;
+				this.pacman();
+			},
 
-		pacman: function() {
-			var bounds = head.bounds;
-			var position = head.position;
-			var size = view.size;
-			if (!bounds.intersects(view.bounds)) {
-				if (position.x < -bounds.width)
-					position.x = size.width + bounds.width;
-				if (position.y < -bounds.height)
-					position.y = size.height + bounds.height;
-				if (position.x > size.width + bounds.width)
-					position.x = -bounds.width;
-				if (position.y > size.height + bounds.height)
-					position.y = -bounds.height;
+			pacman: function() {
+				var bounds = body.bounds;
+				var position = body.position;
+				var size = view.size;
+				if (!bounds.intersects(view.bounds)) {
+					if (position.x < -bounds.width)
+						position.x = size.width + bounds.width;
+					if (position.y < -bounds.height)
+						position.y = size.height + bounds.height;
+					if (position.x > size.width + bounds.width)
+						position.x = -bounds.width;
+					if (position.y > size.height + bounds.height)
+						position.y = -bounds.height;
+				}
+			},
+
+			gravity: function() {
+				var sunRadius 	= 60 //TODO: fix
+				var sunPull		= 50 //TODO: fix
+				var sunCenter 	= sun.interiorPoint;
+				var shipCenter  = body.position;
+				var gravityVector 	= new Point({
+					x: (shipCenter.x - sunCenter.x),
+					y: (shipCenter.y - sunCenter.y)
+				});
+				gravityVector.length = (sunRadius*50/Math.pow((gravityVector.length+.0001), 2));
+				gravityVector.angle += 180; //Invert the angle
+
+				positionVector += gravityVector;
 			}
-		},
-
-		gravity: function() {
-			var sunRadius 	= 60 //TODO: fix
-			var sunCenter 	= sun.interiorPoint;
-			var shipCenter  = head.position;
-			var gravityVector 	= new Point({
-				x: (shipCenter.x - sunCenter.x),
-				y: (shipCenter.y - sunCenter.y)
-			});
-			gravityVector.length = (sunRadius*50/Math.pow((gravityVector.length+.0001), 2));
-			gravityVector.angle += 180;
-
-			positionVector += gravityVector;
 		}
-	}
-};
+	};
+}
