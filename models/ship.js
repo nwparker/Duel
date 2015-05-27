@@ -8,30 +8,50 @@ project.currentStyle = {
 	strokeCap: 'round'
 };
 
+// Game Variables
+var PAUSED = false;
+
+
 var ship;
 project.importSVG('models/ship.svg', function(shipSvg){
 	shipSvg.scale(.3);
 	shipSvg.rotation = 90;
 	ship = createShip(shipSvg);
+	// var shipString = shipSvg.exportSVG({asString:true});
+	// console.log(shipString);
 });
 
-//Create the sun
-var sun = new Path.Circle({
-	center: view.center,
-	radius: 60,
-	strokeWidth: 2.5,
-	fillColor: 'white',
-	strokeColor: 'yellow'
-});
 
-// add all suns to this array
-var SUNS = [sun];
+var stars = [];
+function createStar(radius, mass, center){
+	//Add visually
+	//TODO: Make color correlate to massiveness
+	var star = new Path.Circle({
+		center: center,
+		radius: radius,
+		strokeWidth: 2.5,
+		fillColor: 'white',
+		strokeColor: 'yellow'
+	});
+	//Add to data structure
+	stars.push(
+		{
+		path:   star,
+		center: center,
+		mass:   mass
+		}
+	);
+}
+//Create the center start 
+createStar(60,60,view.center);
 
 //This code is what gets called on each iteration
 function onFrame(event) {
-	if (typeof ship !== 'undefined'){
+	if (typeof ship !== 'undefined' && !PAUSED){
 		//Check collisions
+		ship.starInteractions();
 
+		//Process keyStrokes
 		if (Key.isDown('up')){
 			ship.thrust();
 		}else{
@@ -41,8 +61,7 @@ function onFrame(event) {
 			if (Key.isDown('right'))
 				ship.right();
 		}
-
-		ship.gravity();
+		
 		// Only draw every-other time (optimization)
 		if (event.count%2 == 0)
 			ship.draw();
@@ -77,7 +96,7 @@ function createShip(shipSvg) {
 		// var bodySymbol = new Symbol(shipSvg);
 		var body = new PlacedSymbol(shipSvg);
 		body.position = spawnPoint;
-		// body.rotation = spawnAngle;
+		body.rotation = spawnAngle;
 
 
 		/*
@@ -90,7 +109,7 @@ function createShip(shipSvg) {
 		 */
 		var positionVector = new Point({
 			angle: spawnAngle,
-			length: .5
+			length: 2
 		});
 
 		var thrustVector = new Point({
@@ -133,19 +152,27 @@ function createShip(shipSvg) {
 				}
 			},
 
-			gravity: function() {
-				var sunRadius 	= 60 //TODO: fix
-				var sunPull		= 50 //TODO: fix
-				var sunCenter 	= sun.interiorPoint;
-				var shipCenter  = body.position;
-				var gravityVector 	= new Point({
-					x: (shipCenter.x - sunCenter.x),
-					y: (shipCenter.y - sunCenter.y)
-				});
-				gravityVector.length = (sunRadius*50/Math.pow((gravityVector.length+.0001), 2));
-				gravityVector.angle += 180; //Invert the angle
+			starInteractions: function() {
+				stars.forEach(function(star){
+					//Check collisions
+					if (body.intersects(star.path)){
+						console.log("BOOM");
+						PAUSED = true;
+					}
 
-				positionVector += gravityVector;
+					//Compute gravitation
+					var starPull	= 50 //TODO: fix
+					var starCenter 	= star.center;
+					var shipCenter  = body.position;
+					var gravityVector 	= new Point({
+						x: (shipCenter.x - starCenter.x),
+						y: (shipCenter.y - starCenter.y)
+					});
+					gravityVector.length = ((star.mass*starPull)/Math.pow((gravityVector.length+.0001), 2)); //Smoothing to not div by 0
+					gravityVector.angle += 180; //Invert the angle
+					positionVector += gravityVector;
+				});
+				
 			}
 		}
 	};
