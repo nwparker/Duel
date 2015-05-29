@@ -9,16 +9,30 @@ project.currentStyle = {
 };
 
 // Game Variables
-var PAUSED = false;
-
+var GAME = {
+	paused 	: false,
+	pause 	: function(){this.paused = true;},
+	unpause : function(){this.paused = false;},
+	objects	: {}
+}
 
 var ship;
 project.importSVG('models/ship.svg', function(shipSvg){
+	var curKey = 0;
+	var shipMass = 10;
 	shipSvg.scale(.3);
 	shipSvg.rotation = 90;
 	ship = createShip(shipSvg);
 	// var shipString = shipSvg.exportSVG({asString:true});
 	// console.log(shipString);
+	GAME.objects[("ship"+curKey)] =
+		{
+		type 	: "ship",
+		path 	: ship,
+		center 	: function(){return this.path.position},
+		mass 	: shipMass
+		}
+	curKey++;
 });
 
 
@@ -34,11 +48,13 @@ function createStar(radius, mass, center){
 		strokeColor: 'yellow'
 	});
 	//Add to data structure
+	// GAME.objects.push(
 	stars.push(
 		{
-		path:   star,
-		center: center,
-		mass:   mass
+		type 	: "star",
+		path 	: star,
+		center 	: center,
+		mass 	: mass
 		}
 	);
 }
@@ -47,7 +63,7 @@ createStar(60,60,view.center);
 
 //This code is what gets called on each iteration
 function onFrame(event) {
-	if (typeof ship !== 'undefined' && !PAUSED){
+	if (typeof ship !== 'undefined' && !GAME.paused){
 		//Check collisions
 		ship.starInteractions();
 
@@ -156,8 +172,7 @@ function createShip(shipSvg) {
 				stars.forEach(function(star){
 					//Check collisions
 					if (body.intersects(star.path)){
-						console.log("BOOM");
-						PAUSED = true;
+						GAME.pause();
 					}
 
 					//Compute gravitation
