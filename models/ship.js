@@ -1,4 +1,3 @@
-//This code is born from the 'sperm' code on http://paperjs.org/features/
 /*
  * Set Styles
  */
@@ -7,6 +6,7 @@ project.currentStyle = {
 	strokeWidth: 4,
 	strokeCap: 'round'
 };
+
 /*
  * Set up game variables and other tasks
  */
@@ -27,14 +27,19 @@ var GAME = {
 	paused 	: false,
 	pause 	: function(){this.paused = true;},
 	unpause : function(){this.paused = false;},
-	objects	: {}
+	objects	: {},
+	type 	: {
+				SHIP 	: "ship",
+				STAR 	: "star",
+				PLASMA 	: "plasma"
+			  }
 };
 
 //function called on each iteration
 function onFrame(event) {
 	if (typeof ship !== 'undefined' && !GAME.paused){
 		//Check collisions
-		ship.starInteractions();
+		proccessInteractions();
 
 		//Process keyStrokes
 		if (Key.isDown('up')){
@@ -65,32 +70,38 @@ function onKeyDown(event) {
 /*
  * Processing Interactions
  */
-function interact(obj1, obj2){
-	//Check collisions
-	if (obj1.path.intersects(obj2.path)){
-		// TODO: Add case statements for different types of objects
-		console.log(obj1.type);
-		console.log(obj2.type);
-		GAME.pause();
-	}
-
-	//Compute gravitation
-	var starPull	= 50 //TODO: fix
-	var starCenter 	= obj1.center;
-	var shipCenter  = obj2.center;
-	var gravityVector 	= new Point({
-		x: (shipCenter.x - starCenter.x),
-		y: (shipCenter.y - starCenter.y)
-	});
-	gravityVector.length = ((star.mass*starPull)/Math.pow((gravityVector.length+.0001), 2)); //Smoothing to not div by 0
-	gravityVector.angle += 180; //Invert the angle
-	positionVector += gravityVector; //How should this be computed? hmmmmmmm
+function gravity(effected, attractor){
+	 var GRAV_CONST      = 50 //TODO: change
+	 var effectedCenter  = effected.center;
+	 var attractorCenter = attractor.center;
+	 var gravityVector   = new Point({
+	     x: (effectedCenter.x - attractorCenter.x),
+	     y: (effectedCenter.y - attractorCenter.y)
+	 });
+	 gravityVector.length = GRAV_CONST*((effected.mass*attractor.mass)/((gravityVector.length*gravityVector.length)+.0001));//Smoothed
+	 gravityVector.angle += 180; //Invert the angle
+	 effected.positionVector += gravityVector; //Apply force
 }
 
+function interact(obj1, obj2){
+	console.log(obj1.type+", "+obj2.type);
+	console.log(obj1);
+	// Check collisions
+	if (obj1.getPath().intersects(obj2.path)){
+		// TODO: Add case statements for different types of objects
+		GAME.pause();
+	}
+	// Apply Newton's Universal Law of Gravity
+	if (obj1.type === GAME.type.STAR && obj2.type !== GAME.type.STAR){
+		gravity(obj1, obj2);
+	}else if (obj1.type !== GAME.type.STAR && obj2.type === GAME.type.STAR){
+		gravity(obj2, obj1);
+	}
+}
 
-function interactions(){
+function proccessInteractions(){
 	var objects = GAME.objects.toArray();
-	for (var i=1; i<object.length; i++){
+	for (var i=1; i<objects.length; i++){
 		for (var j=0; j<i; j++){
 			interact(objects[i],objects[j]);
 		}
@@ -113,17 +124,18 @@ project.importSVG('models/ship.svg', function(shipSvg){
 	var key = "ship"+shipCount;
 	GAME.objects[key] =
 		{
-		key 	: key,
-		type 	: "ship",
-		path 	: ship,
-		center 	: function(){return this.path.position},
-		mass 	: shipMass
+		key 				: key,
+		type 				: GAME.type.SHIP,
+		object 				: ship,
+		getPath 			: function(){return this.object.getPath();},
+		getPositionVector 	: function(){return this.object.getPositionVector();},
+		center 				: 1,
+		mass 				: shipMass
 		}
 	shipCount++;
 });
 
 
-var stars = [];
 var starCount = 0;
 function createStar(radius, mass, center){
 	//Add visually
@@ -137,16 +149,16 @@ function createStar(radius, mass, center){
 	});
 	//Add to data structure
 	var key = "star"+starCount;
-	// GAME.objects[key] =
-	stars.push(
+	GAME.objects[key] =
 		{
-		key 	: key,
-		type 	: "star",
-		path 	: star,
-		center 	: center,
-		mass 	: mass
+		key 			: key,
+		type 			: GAME.type.STAR,
+		object 			: null,
+		path 			: star,
+		positionVector 	: null,
+		center 			: center,
+		mass 			: mass
 		}
-	);
 	starCount++;
 }
 
@@ -180,6 +192,12 @@ function createShip(shipSvg) {
 
 		// Ship Methods
 		return {
+			getPath : function() {
+				return body;
+			},
+			getPositionVector : function() {
+				return positionVector;
+			},
 			left: function() {
 				body.rotate(-steering);
 			},
