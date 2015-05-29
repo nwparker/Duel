@@ -8,6 +8,17 @@ project.currentStyle = {
 	strokeCap: 'round'
 };
 
+//Dictonary to Array function
+Object.prototype.toArray = function(){
+    var arr = [];
+    for (var key in this) {
+      if (this.hasOwnProperty(key)) {
+        arr.push(this[key]);
+      }
+    }
+    return arr;
+};
+
 // Game Variables
 var GAME = {
 	paused 	: false,
@@ -18,22 +29,33 @@ var GAME = {
 
 var ship;
 project.importSVG('models/ship.svg', function(shipSvg){
-	var curKey = 0;
+	var count = 0;
 	var shipMass = 10;
 	shipSvg.scale(.3);
 	shipSvg.rotation = 90;
 	ship = createShip(shipSvg);
 	// var shipString = shipSvg.exportSVG({asString:true});
 	// console.log(shipString);
-	GAME.objects[("ship"+curKey)] =
+	GAME.objects["ship"+count] =
 		{
 		type 	: "ship",
 		path 	: ship,
 		center 	: function(){return this.path.position},
 		mass 	: shipMass
 		}
-	curKey++;
+	count++;
 });
+
+function interactions(){
+	var objects = GAME.objects.toArray();
+	for (i=0; i<object.length; i++){
+		for (j=0; j<objects.length; j++){
+			obj1 = objects[i];
+			obj2 = objects[j];
+			// Process interactions for all objecs
+		}
+	}
+}
 
 
 var stars = [];
