@@ -7,6 +7,9 @@ project.currentStyle = {
 	strokeWidth: 4,
 	strokeCap: 'round'
 };
+/*
+ * Set up game variables and other tasks
+ */
 
 //Dictonary to Array function
 Object.prototype.toArray = function(){
@@ -19,71 +22,15 @@ Object.prototype.toArray = function(){
     return arr;
 };
 
-// Game Variables
+//Game Variables
 var GAME = {
 	paused 	: false,
 	pause 	: function(){this.paused = true;},
 	unpause : function(){this.paused = false;},
 	objects	: {}
-}
+};
 
-var ship;
-project.importSVG('models/ship.svg', function(shipSvg){
-	var count = 0;
-	var shipMass = 10;
-	shipSvg.scale(.3);
-	shipSvg.rotation = 90;
-	ship = createShip(shipSvg);
-	// var shipString = shipSvg.exportSVG({asString:true});
-	// console.log(shipString);
-	GAME.objects["ship"+count] =
-		{
-		type 	: "ship",
-		path 	: ship,
-		center 	: function(){return this.path.position},
-		mass 	: shipMass
-		}
-	count++;
-});
-
-function interactions(){
-	var objects = GAME.objects.toArray();
-	for (i=0; i<object.length; i++){
-		for (j=0; j<objects.length; j++){
-			obj1 = objects[i];
-			obj2 = objects[j];
-			// Process interactions for all objecs
-		}
-	}
-}
-
-
-var stars = [];
-function createStar(radius, mass, center){
-	//Add visually
-	//TODO: Make color correlate to massiveness
-	var star = new Path.Circle({
-		center: center,
-		radius: radius,
-		strokeWidth: 2.5,
-		fillColor: 'white',
-		strokeColor: 'yellow'
-	});
-	//Add to data structure
-	// GAME.objects.push(
-	stars.push(
-		{
-		type 	: "star",
-		path 	: star,
-		center 	: center,
-		mass 	: mass
-		}
-	);
-}
-//Create the center start 
-createStar(60,60,view.center);
-
-//This code is what gets called on each iteration
+//function called on each iteration
 function onFrame(event) {
 	if (typeof ship !== 'undefined' && !GAME.paused){
 		//Check collisions
@@ -106,6 +53,7 @@ function onFrame(event) {
 	}
 }
 
+//function called on key press
 function onKeyDown(event) {
 	// Open menu
 	if (event.key == "escape")
@@ -114,37 +62,112 @@ function onKeyDown(event) {
 	return !(/left|right|up|down/.test(event.key));
 }
 
+/*
+ * Processing Interactions
+ */
+function interact(obj1, obj2){
+	//Check collisions
+	if (obj1.path.intersects(obj2.path)){
+		// TODO: Add case statements for different types of objects
+		console.log(obj1.type);
+		console.log(obj2.type);
+		GAME.pause();
+	}
+
+	//Compute gravitation
+	var starPull	= 50 //TODO: fix
+	var starCenter 	= obj1.center;
+	var shipCenter  = obj2.center;
+	var gravityVector 	= new Point({
+		x: (shipCenter.x - starCenter.x),
+		y: (shipCenter.y - starCenter.y)
+	});
+	gravityVector.length = ((star.mass*starPull)/Math.pow((gravityVector.length+.0001), 2)); //Smoothing to not div by 0
+	gravityVector.angle += 180; //Invert the angle
+	positionVector += gravityVector; //How should this be computed? hmmmmmmm
+}
+
+
+function interactions(){
+	var objects = GAME.objects.toArray();
+	for (var i=1; i<object.length; i++){
+		for (var j=0; j<i; j++){
+			interact(objects[i],objects[j]);
+		}
+	}
+}
+
+
+/*
+ * Object Factories/Functions
+ */
+var ship;
+project.importSVG('models/ship.svg', function(shipSvg){
+	var shipCount = 0;
+	var shipMass = 10;
+	shipSvg.scale(.3);
+	shipSvg.rotation = 90;
+	ship = createShip(shipSvg);
+	// var shipString = shipSvg.exportSVG({asString:true});
+	// console.log(shipString);
+	var key = "ship"+shipCount;
+	GAME.objects[key] =
+		{
+		key 	: key,
+		type 	: "ship",
+		path 	: ship,
+		center 	: function(){return this.path.position},
+		mass 	: shipMass
+		}
+	shipCount++;
+});
+
+
+var stars = [];
+var starCount = 0;
+function createStar(radius, mass, center){
+	//Add visually
+	//TODO: Make color correlate to massiveness
+	var star = new Path.Circle({
+		center: center,
+		radius: radius,
+		strokeWidth: 2.5,
+		fillColor: 'white',
+		strokeColor: 'yellow'
+	});
+	//Add to data structure
+	var key = "star"+starCount;
+	// GAME.objects[key] =
+	stars.push(
+		{
+		key 	: key,
+		type 	: "star",
+		path 	: star,
+		center 	: center,
+		mass 	: mass
+		}
+	);
+	starCount++;
+}
 
 function createShip(shipSvg) {
 	return new function() {
+		// Ship Constants
+		var steering = 5;
+
+		// Spawn Setup
 		var spawnPoint = new Point({
 			x: (view.viewSize.width * .85),
 			y: (view.viewSize.height * .5)
 		});
 		var spawnAngle = 90;
 
-		// // TODO: Change into a ship shape
-		// var bodyPath = new Path.Oval({
-		// 	from: [0, 0],
-		// 	to: [13, 8],
-		// 	fillColor: 'blue',
-		// 	strokeColor: null
-		// });
-		// bodyPath.scale(1.3);
-		// var bodySymbol = new Symbol(shipSvg);
 		var body = new PlacedSymbol(shipSvg);
 		body.position = spawnPoint;
 		body.rotation = spawnAngle;
 
 
-		/*
-		 * Ship constants
-		 */
-		var steering = 5;
-
-		/*
-		 * Vectors for position
-		 */
+		// Positional Vectors
 		var positionVector = new Point({
 			angle: spawnAngle,
 			length: 2
@@ -155,6 +178,7 @@ function createShip(shipSvg) {
 			length: .08
 		});
 
+		// Ship Methods
 		return {
 			left: function() {
 				body.rotate(-steering);
@@ -209,8 +233,15 @@ function createShip(shipSvg) {
 					gravityVector.angle += 180; //Invert the angle
 					positionVector += gravityVector;
 				});
-				
 			}
+
 		}
 	};
 }
+
+
+/*
+ * Game Setup (Object Creation in-game)
+ */
+//Create the center start 
+createStar(60,60,view.center);
