@@ -71,31 +71,45 @@ function onKeyDown(event) {
  * Processing Interactions
  */
 function gravity(effected, attractor){
-	 var GRAV_CONST      = 50 //TODO: change
-	 var effectedCenter  = effected.center;
-	 var attractorCenter = attractor.center;
+	 var GRAV_CONST      = 10 //TODO: change
+	 var effectedCenter  = effected.getCenter();
+	 var attractorCenter = attractor.getCenter();
 	 var gravityVector   = new Point({
 	     x: (effectedCenter.x - attractorCenter.x),
 	     y: (effectedCenter.y - attractorCenter.y)
 	 });
+	 //TODO: fix gravity vector length
 	 gravityVector.length = GRAV_CONST*((effected.mass*attractor.mass)/((gravityVector.length*gravityVector.length)+.0001));//Smoothed
 	 gravityVector.angle += 180; //Invert the angle
-	 effected.positionVector += gravityVector; //Apply force
+	 // console.log(effected.object);
+	 effected.object.setPositionVector(effected.object.getPositionVector() + gravityVector); //Apply force
 }
 
 function interact(obj1, obj2){
-	console.log(obj1.type+", "+obj2.type);
-	console.log(obj1);
 	// Check collisions
-	if (obj1.getPath().intersects(obj2.path)){
+	if (obj1.getPath().intersects(obj2.getPath())){
+		if (obj1.type === GAME.type.SHIP && obj2.type === GAME.type.SHIP){
+			// BOTH FAIL
+		}else if (obj1.type === GAME.type.SHIP && obj2.type === GAME.type.STAR){
+			// SHIP FAIL - ADD TO STAR
+		}else if (obj1.type === GAME.type.SHIP && obj2.type === GAME.type.PLASMA){
+			// SHIP FAIL - ADD TO PLASMA SCORE
+			// REMOVE PLASMA
+		}else if (obj1.type === GAME.type.PLASMA && obj2.type === GAME.type.PLASMA){
+			// REMOVE PLASMA
+		}else if (obj1.type === GAME.type.PLASMA && obj2.type === GAME.type.SHIP){
+			// DELETE SHIP
+		}else if (obj1.type === GAME.type.PLASMA && obj2.type === GAME.type.STAR){
+			// REMOVE PLASMA
+		}
 		// TODO: Add case statements for different types of objects
 		GAME.pause();
 	}
 	// Apply Newton's Universal Law of Gravity
 	if (obj1.type === GAME.type.STAR && obj2.type !== GAME.type.STAR){
-		gravity(obj1, obj2);
-	}else if (obj1.type !== GAME.type.STAR && obj2.type === GAME.type.STAR){
 		gravity(obj2, obj1);
+	}else if (obj1.type !== GAME.type.STAR && obj2.type === GAME.type.STAR){
+		gravity(obj1, obj2);
 	}
 }
 
@@ -129,7 +143,7 @@ project.importSVG('models/ship.svg', function(shipSvg){
 		object 				: ship,
 		getPath 			: function(){return this.object.getPath();},
 		getPositionVector 	: function(){return this.object.getPositionVector();},
-		center 				: 1,
+		getCenter 			: function(){return this.getPath().position;},
 		mass 				: shipMass
 		}
 	shipCount++;
@@ -151,13 +165,13 @@ function createStar(radius, mass, center){
 	var key = "star"+starCount;
 	GAME.objects[key] =
 		{
-		key 			: key,
-		type 			: GAME.type.STAR,
-		object 			: null,
-		path 			: star,
-		positionVector 	: null,
-		center 			: center,
-		mass 			: mass
+		key 				: key,
+		type 				: GAME.type.STAR,
+		object 				: star,
+		getPath 			: function(){return this.object;},
+		getPositionVector	: function(){return null;},
+		getCenter 			: function(){return center;},
+		mass 				: mass
 		}
 	starCount++;
 }
@@ -197,6 +211,9 @@ function createShip(shipSvg) {
 			},
 			getPositionVector : function() {
 				return positionVector;
+			},
+			setPositionVector : function(newVector) {
+				positionVector = newVector;
 			},
 			left: function() {
 				body.rotate(-steering);
