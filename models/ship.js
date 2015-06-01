@@ -67,6 +67,42 @@ function onKeyDown(event) {
 	return !(/left|right|up|down/.test(event.key));
 }
 
+function checkCollisions(objA,objB){
+    var checkSingle = function(objX, objY, isGameOver){
+       	if (objX.getPath().intersects(objY.getPath())){
+           	if (objX.type === GAME.type.SHIP){
+               	isGameOver = true;
+               	if (objY.type === GAME.type.SHIP){
+                   //deduct pts
+               	}
+               	else if (objY.type === GAME.type.STAR){
+                   //deduct pts
+               	}
+               	else if (objY.type === GAME.type.PLASMA){
+                   //deduct pts
+               	}
+           	}
+           	else if (objX.type === GAME.type.STAR){
+               	if (objY.type === GAME.type.STAR){
+            		console.log("Suns collided");
+               	}
+               	else if (objY.type === GAME.type.PLASMA){
+               		// Remove the plasma
+               }
+           	}
+           	else if (objX.type === GAME.type.PLASMA){
+               	if (objY.type === GAME.type.PLASMA){
+					// Remove BOTH plasma
+               	}
+           	}
+    	}
+    	return isGameOver;
+    }
+    if( checkSingle(objB, objA, checkSingle(objA, objB, false)) ){
+        GAME.pause();
+    }
+}
+
 /*
  * Processing Interactions
  */
@@ -78,34 +114,13 @@ function gravity(effected, attractor){
 	     x: (effectedCenter.x - attractorCenter.x),
 	     y: (effectedCenter.y - attractorCenter.y)
 	 });
-	 //TODO: fix gravity vector length
 	 gravityVector.length = GRAV_CONST*((effected.mass*attractor.mass)/((gravityVector.length*gravityVector.length)+.0001));//Smoothed
 	 gravityVector.angle += 180; //Invert the angle
-	 // console.log(effected.object);
 	 effected.object.setPositionVector(effected.object.getPositionVector() + gravityVector); //Apply force
 }
 
 function interact(obj1, obj2){
-	// Check collisions
-	if (obj1.getPath().intersects(obj2.getPath())){
-		if (obj1.type === GAME.type.SHIP && obj2.type === GAME.type.SHIP){
-			// BOTH FAIL
-		}else if (obj1.type === GAME.type.SHIP && obj2.type === GAME.type.STAR){
-			// SHIP FAIL - ADD TO STAR
-		}else if (obj1.type === GAME.type.SHIP && obj2.type === GAME.type.PLASMA){
-			// SHIP FAIL - ADD TO PLASMA SCORE
-			// REMOVE PLASMA
-		}else if (obj1.type === GAME.type.PLASMA && obj2.type === GAME.type.PLASMA){
-			// REMOVE PLASMA
-		}else if (obj1.type === GAME.type.PLASMA && obj2.type === GAME.type.SHIP){
-			// DELETE SHIP
-		}else if (obj1.type === GAME.type.PLASMA && obj2.type === GAME.type.STAR){
-			// REMOVE PLASMA
-		}
-		// TODO: Add case statements for different types of objects
-		GAME.pause();
-	}
-	// Apply Newton's Universal Law of Gravity
+	// Apply Newton's Universal Law of Gravity (Don't effect stars)
 	if (obj1.type === GAME.type.STAR && obj2.type !== GAME.type.STAR){
 		gravity(obj2, obj1);
 	}else if (obj1.type !== GAME.type.STAR && obj2.type === GAME.type.STAR){
@@ -117,6 +132,7 @@ function proccessInteractions(){
 	var objects = GAME.objects.toArray();
 	for (var i=1; i<objects.length; i++){
 		for (var j=0; j<i; j++){
+			checkCollisions(objects[i],objects[j]);
 			interact(objects[i],objects[j]);
 		}
 	}
@@ -247,27 +263,6 @@ function createShip(shipSvg) {
 					if (position.y > size.height + bounds.height)
 						position.y = -bounds.height;
 				}
-			},
-
-			starInteractions: function() {
-				stars.forEach(function(star){
-					//Check collisions
-					if (body.intersects(star.path)){
-						GAME.pause();
-					}
-
-					//Compute gravitation
-					var starPull	= 50 //TODO: fix
-					var starCenter 	= star.center;
-					var shipCenter  = body.position;
-					var gravityVector 	= new Point({
-						x: (shipCenter.x - starCenter.x),
-						y: (shipCenter.y - starCenter.y)
-					});
-					gravityVector.length = ((star.mass*starPull)/Math.pow((gravityVector.length+.0001), 2)); //Smoothing to not div by 0
-					gravityVector.angle += 180; //Invert the angle
-					positionVector += gravityVector;
-				});
 			}
 
 		}
