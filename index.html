@@ -4,12 +4,15 @@
 </head>
 <body>
 
-<script type="text/javascript" src="required/js/paper-full.min.js"></script>
-<!-- <script type="text/paperscript" src="game.js" canvas="canvas-4"></script> -->
-<script type="text/paperscript" src="models/ship.js" canvas="canvas-4"></script>
+<script type="text/javascript" src="required/js/paper-full.js"></script>
+<script type="text/javascript" src="models/wip.js"></script>
+<!-- <script type="text/paperscript" src="game.js" canvas="space_canvas"></script> -->
+<!-- <script type="text/paperscript" src="models/ship.js" canvas="space_canvas"></script> -->
 
-<canvas id="canvas-4" width="1280" height="720" style="background-color:#000"></canvas>
+<canvas id="space_canvas" width="1280" height="720"
+ style="position: absolute; left: 0; top: 0; z-index: 0; background-color:#000;"></canvas>
+<canvas id="trail_canvas" width="1280" height="720"
+ style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
 
 </body>
 </html>
-

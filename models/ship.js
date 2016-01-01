@@ -10,17 +10,14 @@ project.currentStyle = {
 /*
  * Set up game variables and other tasks
  */
-
-//Dictonary to Array function
-Object.prototype.toArray = function(){
-    var arr = [];
-    for (var key in this) {
-      if (this.hasOwnProperty(key)) {
-        arr.push(this[key]);
-      }
-    }
-    return arr;
+var html_canvas = document.getElementById("canvas-4");
+var raster = new Raster(html_canvas);
+console.log(raster);
+console.log("testttt");
+raster.onLoad = function() {
+    console.log('The canvas has loaded.');
 };
+
 
 //Game Variables
 var GAME = {
@@ -38,7 +35,7 @@ var GAME = {
 //function called on each iteration
 function onFrame(event) {
 	if (typeof ship !== 'undefined' && !GAME.paused){
-		//Check collisions
+		//Loop over objects
 		proccessInteractions();
 
 		//Process keyStrokes
@@ -51,7 +48,7 @@ function onFrame(event) {
 			if (Key.isDown('right'))
 				ship.right();
 		}
-		
+
 		// Only draw every-other time (optimization)
 		if (event.count%2 == 0)
 			ship.draw();
@@ -81,6 +78,8 @@ function checkCollisions(objA,objB){
                	else if (objY.type === GAME.type.PLASMA){
                    //deduct pts
                	}
+               	//Remove the ship
+               	objX.remove();
            	}
            	else if (objX.type === GAME.type.STAR){
                	if (objY.type === GAME.type.STAR){
@@ -98,16 +97,16 @@ function checkCollisions(objA,objB){
     	}
     	return isGameOver;
     }
-    if( checkSingle(objB, objA, checkSingle(objA, objB, false)) ){
+    // Pause if ship(s) destoryed
+    if( checkSingle(objB, objA, checkSingle(objA, objB, false)) )
         GAME.pause();
-    }
 }
 
 /*
  * Processing Interactions
  */
 function gravity(effected, attractor){
-	 var GRAV_CONST      = 10 //TODO: change
+	 var GRAV_CONST      = 10 //TODO: playWith
 	 var effectedCenter  = effected.getCenter();
 	 var attractorCenter = attractor.getCenter();
 	 var gravityVector   = new Point({
@@ -129,7 +128,14 @@ function interact(obj1, obj2){
 }
 
 function proccessInteractions(){
-	var objects = GAME.objects.toArray();
+	//Dictonary to Array
+    var objects = [];
+    for (var key in GAME.objects) {
+      if (GAME.objects.hasOwnProperty(key)) {
+        objects.push(GAME.objects[key]);
+      }
+    }
+
 	for (var i=1; i<objects.length; i++){
 		for (var j=0; j<i; j++){
 			checkCollisions(objects[i],objects[j]);
@@ -157,6 +163,8 @@ project.importSVG('models/ship.svg', function(shipSvg){
 		key 				: key,
 		type 				: GAME.type.SHIP,
 		object 				: ship,
+		remove 				: function(){this.getPath().remove();
+										 delete GAME.objects[this.key];},
 		getPath 			: function(){return this.object.getPath();},
 		getPositionVector 	: function(){return this.object.getPositionVector();},
 		getCenter 			: function(){return this.getPath().position;},
@@ -179,16 +187,15 @@ function createStar(radius, mass, center){
 	});
 	//Add to data structure
 	var key = "star"+starCount;
-	GAME.objects[key] =
-		{
+	GAME.objects[key] = {
 		key 				: key,
 		type 				: GAME.type.STAR,
 		object 				: star,
+		remove 				: function(){/*Do Nothing*/},
 		getPath 			: function(){return this.object;},
 		getPositionVector	: function(){return null;},
 		getCenter 			: function(){return center;},
-		mass 				: mass
-		}
+		mass 				: mass}
 	starCount++;
 }
 
@@ -203,8 +210,23 @@ function createShip(shipSvg) {
 			y: (view.viewSize.height * .5)
 		});
 		var spawnAngle = 90;
-
 		var body = new PlacedSymbol(shipSvg);
+
+		//ToDo: Fix the thrust
+		/*
+		var thrust = new Path({
+		    segments: [[-7.1, -3], [-50, 0], [-7.1, 3]],
+		    fillColor: 'white',
+		    visible : true
+		});
+		var shipGroup = new Group(body, thrust);
+		*/
+		
+		var path = new Path({
+		    strokeColor	: 'white',
+		    dashArray 	: [1, 10]
+		});
+
 		body.position = spawnPoint;
 		body.rotation = spawnAngle;
 
@@ -225,12 +247,15 @@ function createShip(shipSvg) {
 			getPath : function() {
 				return body;
 			},
+
 			getPositionVector : function() {
 				return positionVector;
 			},
+
 			setPositionVector : function(newVector) {
 				positionVector = newVector;
 			},
+
 			left: function() {
 				body.rotate(-steering);
 			},
@@ -245,8 +270,17 @@ function createShip(shipSvg) {
 			},
 
 			draw: function() {
-				body.position += positionVector;
-				this.pacman();
+			    // Draw trail
+			    var path = new Path.Circle({
+			        center: body.position,
+			        radius: 1,
+			        fillColor: 'white',
+			        strokeWidth: 0,
+			    });
+			    // Update Ship Position
+			    body.position += positionVector;
+			    // Bound Object
+			    this.pacman();
 			},
 
 			pacman: function() {
