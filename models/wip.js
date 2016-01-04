@@ -1,3 +1,39 @@
+var ship_svg_string = '<?xml version="1.0" encoding="UTF-8" standalone="no"?> \
+<svg \
+   xmlns:dc="http://purl.org/dc/elements/1.1/" \
+   xmlns:cc="http://creativecommons.org/ns#" \
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" \
+   xmlns:svg="http://www.w3.org/2000/svg" \
+   xmlns="http://www.w3.org/2000/svg" \
+   version="1.1" \
+   id="svg2" \
+   viewBox="0 0 744.09448819 1052.3622047" \
+   height="297mm" \
+   width="210mm"> \
+  <defs \
+     id="defs4" /> \
+  <metadata \
+     id="metadata7"> \
+    <rdf:RDF> \
+      <cc:Work \
+         rdf:about=""> \
+        <dc:format>image/svg+xml</dc:format> \
+        <dc:type \
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" /> \
+        <dc:title></dc:title> \
+      </cc:Work> \
+    </rdf:RDF> \
+  </metadata> \
+  <g \
+     id="layer1"> \
+    <path \
+       id="path4233" \
+       d="M 351.39453 522.92969 L 352.08594 614.83008 L 322.13086 615.00781 L 321.78516 588.30469 L 292.59375 588.48242 L 293.11133 661.57422 L 322.05469 661.03906 L 321.92773 648.68359 L 331.39258 644.76953 C 339.2884 650.37655 349.19238 675.57936 369.18359 678.85352 L 369.18359 679.01953 C 369.35837 678.998 369.52594 678.9604 369.69922 678.93555 C 369.87313 678.96051 370.04137 678.99792 370.2168 679.01953 L 370.2168 678.85352 C 390.20801 675.57936 400.11199 650.37655 408.00781 644.76953 L 417.47266 648.68359 L 417.3457 661.03906 L 446.28906 661.57422 L 446.80859 588.48242 L 417.61523 588.30469 L 417.26953 615.00781 L 387.31445 614.83008 L 388.00586 522.92969 L 369.95508 522.92969 L 369.44531 522.92969 L 351.39453 522.92969 z " \
+       style="fill:#ffd42a;fill-rule:evenodd;stroke:none;stroke-width:0.98434889px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" /> \
+  </g> \
+</svg>';
+
+
 paper.install(window);
 var trail_raster;
 var trail_color;
@@ -156,35 +192,6 @@ window.onload = function() {
     }
 
 
-    /*
-     * Object Factories/Functions
-     */
-    var ship;
-    project.importSVG('models/ship.svg', function(shipSvg){
-        var shipCount = 0;
-        var shipMass = 10;
-        shipSvg.scale(.3);
-        shipSvg.rotation = 90;
-        ship = createShip(shipSvg);
-        // var shipString = shipSvg.exportSVG({asString:true});
-        // console.log(shipString);
-        var key = "ship"+shipCount;
-        GAME.objects[key] =
-            {
-            key                 : key,
-            type                : GAME.type.SHIP,
-            object              : ship,
-            remove              : function(){this.getPath().remove();
-                                             delete GAME.objects[this.key];},
-            getPath             : function(){return this.object.getPath();},
-            getPositionVector   : function(){return this.object.getPositionVector();},
-            getCenter           : function(){return this.getPath().position;},
-            mass                : shipMass
-            }
-        shipCount++;
-    });
-
-
     var starCount = 0;
     function createStar(radius, mass, center){
         //Add visually
@@ -210,10 +217,37 @@ window.onload = function() {
         starCount++;
     }
 
+
+    /*
+     * Object Factories/Functions
+     */
+    var shipSvg = project.importSVG(ship_svg_string);
+    shipSvg.scale(.3);
+    shipSvg.rotation = 90;
+    var shipMass = 10;
+    var ship_steering = 5;
+    var ship = createShip(shipSvg);
+    // var shipString = shipSvg.exportSVG({asString:true});
+    // console.log(shipString);
+    var shipCount = 0;
+    var key = "ship"+shipCount;
+    GAME.objects[key] =
+        {
+        key                 : key,
+        type                : GAME.type.SHIP,
+        object              : ship,
+        remove              : function(){this.getPath().remove();
+                                         delete GAME.objects[this.key];},
+        getPath             : function(){return this.object.getPath();},
+        getPositionVector   : function(){return this.object.getPositionVector();},
+        getCenter           : function(){return this.getPath().position;},
+        mass                : shipMass
+        }
+    shipCount++;
+
     function createShip(shipSvg) {
         return new function() {
             // Ship Constants
-            var steering = 5;
 
             // Spawn Setup
             var spawnPoint = new Point({
@@ -268,11 +302,11 @@ window.onload = function() {
                 },
 
                 left: function() {
-                    body.rotate(-steering);
+                    body.rotate(-ship_steering);
                 },
 
                 right: function() {
-                    body.rotate(steering);
+                    body.rotate(ship_steering);
                 },
 
                 thrust: function() {
